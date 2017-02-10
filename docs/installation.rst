@@ -43,6 +43,10 @@ Docker setup
 
         cd kuma
 
+#. Copy ``.env-dist.dev`` to ``.env``. Linux users should to set the ``UID``
+   parameter in ``.env``, to avoid issues when mixing ``docker-compose`` and
+   ``docker`` commands.
+
 #. Pull the Docker images and build the containers::
 
         docker-compose pull
@@ -51,6 +55,7 @@ Docker setup
 #. Start the containers in the background::
 
         docker-compose up -d
+        make up  # Alternate method
 
 The following instructions assume that you are running from a folder named
 ``kuma``, so that the containers created are named ``kuma_web_1``,
