@@ -76,12 +76,11 @@ mdn_sample_db.sql
 mdn_sample_db.sql.gz
 /mdntests/
 /media/attachments
-/media/sitemap*
 /media/uploads
 /media/revision.txt
 /media/kumascript-revision.txt
 node_modules/
-/static/
+/kuma/static/
 kuma/javascript/dist/
 /tmp/emails/*.log
 npm-debug.log

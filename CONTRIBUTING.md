@@ -22,11 +22,11 @@ the [MDN "Getting Involved" page][get-involved]. There are interesting
 they may be harder to find. If you have questions about what to work on, you
 can ask:
 
-* In the #mdndev [IRC channel on irc.mozilla.org][irc-howto].
+* In the #mdn [Matrix room on chat.mozilla.org][matrix-howto].
 * In the [MDN Topic][discourse] in Discourse.
 
 [get-involved]: https://wiki.mozilla.org/Webdev/GetInvolved/developer.mozilla.org#Mentored_Bugs
-[irc-howto]: https://wiki.mozilla.org/Irc
+[matrix-howto]: https://wiki.mozilla.org/Matrix
 [mdn-projects]: https://github.com/mdn
 
 How to submit code
@@ -39,7 +39,7 @@ steps are:
 3. Make your changes, and create one or more commits.
 4. Push your branch to your fork.
 5. Open a pull request (PR).
-6. Fix any issues identified by [TravisCI][travisci], our automated testing
+6. Fix any issues identified by [GitHub Actions][githubactions], our automated testing
    provider.
 7. Fix any issues identified by code review.
 
@@ -48,7 +48,7 @@ and give feedback, or to tell you when we plan to review it.
 
 [gh-flow]: https://guides.github.com/introduction/flow/
 [install]: https://kuma.readthedocs.io/en/latest/installation.html
-[travisci]: https://travis-ci.com/mdn/kuma/pull_requests
+[githubactions]: https://github.com/mdn/kuma/actions
 
 Conventions
 ===========
@@ -171,8 +171,8 @@ MDN uses automated tests to prevent regressions and ensure that new code does
 what it claims. Tests are required for new functionality, as measured by code
 coverage tools, and all tests must pass before merging.
 
-We use [TravisCI][travisci] to automatically run tests and quality checks when
-a pull request is opened. If TravisCI identifies problems, we expect them to
+We use [GitHub Actions][githubactions] to automatically run tests and quality checks when
+a pull request is opened. If GitHub Actions identifies problems, we expect them to
 be fixed before the code review starts.
 
 It is a good idea to run the tests that apply to your change before opening a
@@ -197,7 +197,7 @@ We **prefer** test functions, a small number of global
 that customize the global fixtures, and using [assert][assert] for test
 assertions.
 
-[travisci]: https://travis-ci.com/mdn/kuma/pull_requests
+[githubactions]: https://travis-ci.com/mdn/kuma/pull_requests
 [testing]: https://kuma.readthedocs.io/en/latest/tests.html#running-the-test-suite
 [testcase]: https://docs.djangoproject.com/en/1.8/topics/testing/tools/#testcase
 [fixture_files]: https://docs.djangoproject.com/en/1.8/topics/testing/tools/#fixture-loading
@@ -274,8 +274,7 @@ merge after fixing minor issues.
 
 Deployment and Closing Bugs
 ---------------------------
-MDN staff deploy new code one to three times a week. Deployments are announced
-in the #mdndev IRC channel. Currently deployed code can be seen on the
+MDN staff deploy new code one to three times a week. Currently deployed code can be seen on the
 [What's Deployed?](https://whatsdeployed.io/s-HC0) page.
 
 Once a bug fix is in production, the bug can be marked as RESOLVED:FIXED.

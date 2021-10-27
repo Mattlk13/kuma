@@ -44,94 +44,10 @@ Run the Django test suite::
 For more information, see the :doc:`test documentation <tests>`.
 
 Functional tests
----------------
+----------------
 To run the functional tests, see
 :doc:`Client-side Testing <tests-functional>`.
 
-Kumascript tests
-----------------
-If you're changing Kumascript, be sure to run its tests too.
-See https://github.com/mdn/kumascript.
-
-.. _front-end-development:
-
-Front-end development
-=====================
-Assets are processed in several steps by Django and django-pipeline_:
-
-* Front-end localization libraries and string catalogs are generated based on
-  ``gettext`` calls in Javascript files.
-* Sass_ source files are compiled to plain CSS with node-sass_.
-* Assets are collected to the ``static/`` folder.
-* CSS, JS, and image assets are included in templates using the
-  ``{% stylesheet %}``, ``{% javascript %}``, and ``{% static %}`` Jinja2
-  macros.
-
-In production mode (``DEBUG=False``), there is additional processing. See
-:ref:`generating-production-assets` for more information.
-
-To rebuild the front-end localization libraries::
-
-    make compilejsi18n
-
-To rebuild CSS, JS, and image assets::
-
-    make collectstatic
-
-To do both::
-
-    make build-static
-
-.. _ManifestStaticFilesStorage: https://docs.djangoproject.com/en/1.11/ref/contrib/staticfiles/#django.contrib.staticfiles.storage.ManifestStaticFilesStorage
-.. _Sass: https://sass-lang.com/
-.. _UglifyJS: https://github.com/mishoo/UglifyJS2
-.. _cleancss: https://github.com/jakubpawlowicz/clean-css-cli
-.. _django-pipeline: https://github.com/jazzband/django-pipeline
-.. _node-sass: https://github.com/sass/node-sass
-
-Compiling JS on the host system with webpack
---------------------------------------------
-For a quicker iteration cycle while developing the frontend app you can run::
-
-    npm i
-    npm run webpack:dev
-
-This watches the react frontend and rebuilds both the web and SSR bundle
-when changes occur. It rebuilds only what has changed and also restarts the
-SSR server.
-It serves React in development mode which yields more explicit warnings and
-allows you to use tools such as the `React DevTools`_.
-
-.. _`React DevTools`: https://reactjs.org/blog/2019/08/15/new-react-devtools.html#how-do-i-get-the-new-devtools
-
-You can also run it in production mode::
-
-   npm run webpack:prod
-
-Style guide and linters
------------------------
-There is an evolving style guide at https://mdn.github.io/mdn-fiori/, sourced
-from https://github.com/mdn/mdn-fiori. Some of the style guidelines are
-enforced by linters.
-
-To run stylelint_ on all ``.scss`` files::
-
-    npm run stylelint
-
-To run eslint_ on ``.js`` files::
-
-    npm run eslint
-
-.. _stylelint: https://stylelint.io/
-.. _eslint: https://eslint.org/
-
-Bundle Analyze
---------------
-To get an idea about the size distribution of our react codebase you can run::
-
-    npm run webpack:analyze
-
-This will open an interactively explorable report in your browser.
 
 Database migrations
 ===================
@@ -139,10 +55,7 @@ Apps are migrated using Django's migration system. To run the migrations::
 
     ./manage.py migrate
 
-If your changes include schema modifications, see the Django documentation for
-the `migration workflow`_.
 
-.. _migration workflow: https://docs.djangoproject.com/en/1.8/topics/migrations/#workflow
 
 Coding conventions
 ==================
@@ -197,43 +110,14 @@ You may wish to run these commands inside of Docker::
 Using Poetry directly on your host computer is also fine; the resulting
 ``pyproject.toml`` and ``poetry.lock`` files should be the same either way.
 
-.. _Poetry: https://poetry.eustace.io/
-.. _adding: https://poetry.eustace.io/docs/cli/#add
-.. _updating: https://poetry.eustace.io/docs/cli/#update
+.. _Poetry: https://python-poetry.org/
+.. _adding: https://python-poetry.org/docs/cli/#add
+.. _updating: https://python-poetry.org/docs/cli/#update
 
 .. _front-end-asset-dependencies:
 
-Front-end asset dependencies
-----------------------------
-Front-end dependencies are managed by Bower_ and checked into the repository.
-Follow these steps to add or upgrade a dependency:
 
-#. On the host, update ``bower.json``.
-#. Start a root Docker container shell ``docker-compose run -u root web bash``
-#. (*Docker only*) In the root container shell, run::
 
-    apt-get update
-    apt-get install -y git
-    npm install -g bower-installer
-    bower-installer
-
-#. On the host, prepare the dependency to be committed (``git add path/to/dependency``).
-
-Front-end dependencies that are not already managed by Bower should begin using
-this approach the next time they're upgraded.
-
-.. _Bower: http://bower.io
-
-Front-end toolchain dependencies
---------------------------------
-The Front-end toolchain dependencies are managed by npm_, but not checked in to
-the repository. Follow these steps to add or upgrade a dependency:
-
-#. On the host, update ``package.json``.
-#. In the web container, install the new dependencies with ``make npmrefresh``
-#. On the host, commit the new ``package.json`` and ``package-lock.json``.
-
-.. _npm: https://www.npmjs.com/
 
 Customizing with environment variables
 ======================================
@@ -329,7 +213,7 @@ Customizing the database
 The database connection is defined by the environment variable
 ``DATABASE_URL``, with this default::
 
-    DATABASE_URL=mysql://root:kuma@mysql:3306/developer_mozilla_org
+    DATABASE_URL=postgresql://kuma:kuma@postgres:5432/developer_mozilla_org
 
 The format is defined by the dj-database-url_ project::
 
@@ -347,26 +231,6 @@ To connect to the database specified in ``DATABASE_URL``, use::
 .. _dj-database-url: https://github.com/kennethreitz/dj-database-url
 
 .. _generating-production-assets:
-
-Generating production assets
-============================
-Setting ``DEBUG=False`` will put you in production mode, which adds aditional
-asset processing:
-
-* Javascript modules are combined into single JS files.
-* CSS and JS files are minifed and post-processed by cleancss_ and UglifyJS_.
-* Assets are renamed to include a hash of contents by a variant of Django's ManifestStaticFilesStorage_.
-
-In production mode, assets and their hashes are read once when the server
-starts, for efficiency. Any changes to assets require rebuilding with
-``make build-static`` and restarting the web process.
-
-To emulate production, and test compressed and hashed assets locally:
-
-#. Set the environment variable ``DEBUG=False``
-#. Start (``docker-compose up -d``) your Docker services.
-#. Run ``docker-compose run --rm -e DJANGO_SETTINGS_MODULE=kuma.settings.prod web make build-static``.
-#. Restart the web process using ``docker-compose restart web``.
 
 Using secure cookies
 ====================
@@ -475,96 +339,29 @@ Now you should be ready for a successful test run::
 Note that the "search" tests are excluded. This is because the tests marked
 "search" are not currently designed to run against the sample database.
 
-Serving over SSL / HTTPS
-========================
-Kuma can be served over HTTPS locally with a self-signed certificate. Browsers
-consider self-signed certificates to be unsafe, and you'll have to confirm
-that you want an exception for this.
-
-
-#. If you want GitHub logins:
-
-   * In the `Django Admin for Sites`_, ensure that site #2's domain is set to
-     ``developer.127.0.0.1.nip.io``.
-
-   * In GitHub, generate a new GitHub OAuth app for the test SSL domain,
-     modifying the procees at :ref:`enable-github-auth`. When creating the
-     GitHub OAuth app, replace ``http://localhost:8000`` with
-     ``https://developer.127.0.0.1.nip.io`` in both URLs. When creating the
-     ``SocialApp`` in Kuma, chose the ``developer.127.0.0.1.nip.io`` site.
-
-#. Include the SSL containers by updating ``.env``::
-
-    COMPOSE_FILE=docker-compose.yml:docker-compose.ssl.yml
-
-#. Run the new containers::
-
-    docker-compose up -d
-
-#. Load https://developer.127.0.0.1.nip.io/en-US/ in your browser, and add an
-   exception for the self-signed certificate.
-
-#. Load https://demos.developer.127.0.0.1.nip.io/en-US/ in your browser, and
-   add an exception for the self-signed certificate again.
-
-Some features of SSL-protected sites may not be available, because the browser
-does not fully trust the self-signed SSL certificate. The HTTP-only website
-will still be available at http://localhost:8000/en-US/, but GitHub logins will
-not work.
 
 .. _`Django Admin for Sites`: http://localhost:8000/admin/sites/site/
 
 Enabling ``PYTHONWARNINGS``
 ===========================
 
-By default, ``PYTHONWARNINGS`` is not set, leaving it to be ``default``
-(which is like regular ``python`` on the command line). To change its
-value you can edit your ``.env`` file. For example::
+Python `ignores some warnings`_ by default, including ``DeprecationWarning``.
+To see these warnings, you can set the `PYTHONWARNINGS`_ environment variable
+in your ``.env`` file. For example::
 
-    # Unmask all possible Python warnings
-    PYTHONWARNINGS=all
+    # Show every warning, every time it occurs
+    PYTHONWARNINGS=always
 
-The ``docker-compose.yml`` will read this and start ``gunicorn`` and the
-``celery`` worker with this setting.
+Or alternatively::
 
-Configuring AWS S3
-==================
+    # Show every warning, but ignore repeats
+    PYTHONWARNINGS=default
 
-The ``publish`` and ``unpublish`` Celery tasks and Django management commands
-require AWS S3 to be configured in order for them to do any real work, that is,
-creating/updating/deleting S3 objects used by the stage/production document API.
-In stage and production, the S3 bucket name as well as the AWS credentials are
-configured via the container environment, which in turn, gets the AWS credentials
-from a Kubernetes ``secrets`` resource. For local development, there is no need
-for any of this configuration. The ``publish`` and ``unpublish`` tasks will
-simply be skipped (although, for verification/debugging purposes, you can see
-the detailed skip messages in the ``worker`` log (
-``docker-compose logs -f worker``).
+Note: Explicitly setting ``PYTHONWARNINGS=default`` will not do what you expect.
+It actually *disables* the default filters, ensuring that *every* warning gets
+displayed, but only the first time it occurs on a given line.
 
-However, if for testing purposes you'd like to locally configure the
-``publish`` and ``unpublish`` tasks to use S3, you can simply add the
-following to your ``.env`` file::
+See the `PYTHONWARNINGS`_ docs for more information on possible values.
 
-    MDN_API_S3_BUCKET_NAME=<your-s3-bucket-name>
-    AWS_ACCESS_KEY_ID=<your-aws-access-key>
-    AWS_SECRET_ACCESS_KEY=<your-aws-secret-key>
-
-
-Enabling ``django-querycount``
-==============================
-
-If you want to find out how many SQL queries are made, per request,
-even if they are XHR requests, you can simply add this to your ``.env`` file::
-
-    ENABLE_QUERYCOUNT=true
-
-Stop and start ``docker-compose`` and now, on ``stdout``, it will print a
-table for every request URL about how many queries that involved and
-some information about how many of them were duplicates.
-
-If you want more insight into the duplicate queries add this to your ``.env``::
-
-    QUERYCOUNT_DISPLAY_DUPLICATES=3
-
-A number greater than the (default) 0 means it will print the 3 most
-repeated SQL queries.
+.. _`ignores some warnings`: https://docs.python.org/3/library/warnings.html#default-warning-filter
+.. _`PYTHONWARNINGS`: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONWARNINGS

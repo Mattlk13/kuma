@@ -1,23 +1,14 @@
-import json
-import logging
-
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.db import DatabaseError
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST, require_safe
-from elasticsearch.exceptions import (
-    ConnectionError as ES_ConnectionError,
-    NotFoundError,
-)
-from raven.contrib.django.models import client
-from requests.exceptions import ConnectionError as Requests_ConnectionError, ReadTimeout
-
-from kuma.users.models import User
-from kuma.wiki.kumascript import request_revision_hash
-from kuma.wiki.models import Document
-from kuma.wiki.search import WikiDocumentType
+from django.views.decorators.http import require_safe
+from elasticsearch.exceptions import ConnectionError as ES_ConnectionError
+from elasticsearch.exceptions import NotFoundError, TransportError
+from elasticsearch_dsl import Search
+from elasticsearch_dsl.connections import connections as es_connections
 
 
 @never_cache
@@ -35,24 +26,25 @@ def liveness(request):
 @never_cache
 @require_safe
 def readiness(request):
-    """
-    A successful response from this endpoint goes a step further
-    and means not only that Django is up and running, but also that
-    the database can be successfully used from within this service.
-    The other supporting services are not checked, but we may find
-    that we want/need to add them later.
-    """
-    try:
-        # Confirm that we can use the database by making a fast query
-        # against the Document table. It's not important that the document
-        # with the requested primary key exists or not, just that the query
-        # completes without error.
-        Document.objects.filter(pk=1).exists()
-    except DatabaseError as e:
-        reason_tmpl = "service unavailable due to database issue ({!s})"
-        status, reason = 503, reason_tmpl.format(e)
-    else:
-        status, reason = 204, None
+    # """
+    # A successful response from this endpoint goes a step further
+    # and means not only that Django is up and running, but also that
+    # the database can be successfully used from within this service.
+    # The other supporting services are not checked, but we may find
+    # that we want/need to add them later.
+    # """
+    # try:
+    #     # Confirm that we can use the database by making a fast query
+    #     # against the Document table. It's not important that the document
+    #     # with the requested primary key exists or not, just that the query
+    #     # completes without error.
+    #     Document.objects.filter(pk=1).exists()
+    # except DatabaseError as e:
+    #     reason_tmpl = "service unavailable due to database issue ({!s})"
+    #     status, reason = 503, reason_tmpl.format(e)
+    # else:
+    #     status, reason = 204, None
+    status, reason = 204, None
     return HttpResponse(status=status, reason=reason)
 
 
@@ -74,7 +66,6 @@ def status(request):
         },
         "services": {
             "database": {},
-            "kumascript": {},
             "search": {},
             "test_accounts": {},
         },
@@ -82,6 +73,7 @@ def status(request):
             "ALLOWED_HOSTS": settings.ALLOWED_HOSTS,
             "ATTACHMENT_HOST": settings.ATTACHMENT_HOST,
             "ATTACHMENT_ORIGIN": settings.ATTACHMENT_ORIGIN,
+            "ATTACHMENTS_AWS_S3_CUSTOM_URL": settings.ATTACHMENTS_AWS_S3_CUSTOM_URL,
             "DEBUG": settings.DEBUG,
             "INTERACTIVE_EXAMPLES_BASE": settings.INTERACTIVE_EXAMPLES_BASE,
             "MAINTENANCE_MODE": settings.MAINTENANCE_MODE,
@@ -89,49 +81,37 @@ def status(request):
             "REVISION_HASH": settings.REVISION_HASH,
             "SITE_URL": settings.SITE_URL,
             "STATIC_URL": settings.STATIC_URL,
-            "WIKI_SITE_URL": settings.WIKI_SITE_URL,
         },
     }
 
     # Check that database is reachable, populated
-    doc_data = {"available": True, "populated": False, "document_count": 0}
+    doc_data = {"available": True, "populated": False}
     try:
-        doc_count = Document.objects.count()
+        doc_count = ContentType.objects.count()
     except DatabaseError:
         doc_data["available"] = False
     else:
         if doc_count:
             doc_data["populated"] = True
-            doc_data["document_count"] = doc_count
     data["services"]["database"] = doc_data
 
-    # Check that KumaScript is reachable
-    ks_data = {
-        "available": True,
-        "revision": None,
-    }
+    # Check that Elasticsearch is reachable and somewhat healthy
+    search_data = {"available": None, "populated": None, "health": None, "count": None}
     try:
-        ks_response = request_revision_hash()
-    except (Requests_ConnectionError, ReadTimeout):
-        ks_response = None
-    if not ks_response or ks_response.status_code != 200:
-        ks_data["available"] = False
-    else:
-        ks_data["revision"] = ks_response.text
-    data["services"]["kumascript"] = ks_data
-
-    # Check that ElasticSearch is reachable, populated
-    search_data = {"available": True, "populated": False, "count": 0}
-    try:
-        search_count = WikiDocumentType.search().count()
-    except ES_ConnectionError:
+        es_connections.create_connection(hosts=settings.ES_URLS)
+        connection = es_connections.get_connection()
+        search_data["available"] = True
+        health = connection.cluster.health()
+        search_data["health"] = health
+        count = Search(
+            index=settings.SEARCH_INDEX_NAME,
+        ).count()
+        search_data["populated"] = count > 0
+        search_data["count"] = count
+    except (ES_ConnectionError, TransportError):
         search_data["available"] = False
     except NotFoundError:
-        pass  # available but unpopulated (and maybe uncreated)
-    else:
-        if search_count:
-            search_data["populated"] = True
-            search_data["count"] = search_count
+        search_data["populated"] = False
     data["services"]["search"] = search_data
 
     # Check if the testing accounts are available
@@ -161,35 +141,3 @@ def status(request):
     data["services"]["test_accounts"] = test_account_data
 
     return JsonResponse(data)
-
-
-@csrf_exempt
-@require_POST
-def csp_violation_capture(request):
-    """
-    Capture CSP violation reports, forward to Sentry.
-
-    HT @glogiotatidis https://github.com/mozmeao/lumbergh/pull/180
-    HT @pmac, @jgmize https://github.com/mozilla/bedrock/pull/4335
-    """
-    if not settings.CSP_REPORT_ENABLE:
-        # mitigation option for a flood of violation reports
-        return HttpResponse()
-
-    data = client.get_data_from_request(request)
-    data.update({"level": logging.INFO, "logger": "CSP"})
-    try:
-        csp_data = json.loads(request.body)
-    except ValueError:
-        # Cannot decode CSP violation data, ignore
-        return HttpResponseBadRequest("Invalid CSP Report")
-
-    try:
-        blocked_uri = csp_data["csp-report"]["blocked-uri"]
-    except KeyError:
-        # Incomplete CSP report
-        return HttpResponseBadRequest("Incomplete CSP Report")
-
-    client.captureMessage(message="CSP Violation: {}".format(blocked_uri), data=data)
-
-    return HttpResponse("Captured CSP violation, thanks for reporting.")

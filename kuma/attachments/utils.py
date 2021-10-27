@@ -2,41 +2,24 @@ import calendar
 import hashlib
 from datetime import datetime
 
-from constance import config
 from django.conf import settings
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import http_date
-
-from kuma.core.urlresolvers import reverse
-
-
-def allow_add_attachment_by(user):
-    """Returns whether the `user` is allowed to upload attachments.
-
-    This is determined by a negative permission, `disallow_add_attachment`
-    When the user has this permission, upload is disallowed unless it's
-    a superuser or staff.
-    """
-    if config.WIKI_ATTACHMENTS_DISABLE_UPLOAD:
-        # Uploading via the Wiki is disabled
-        return False
-    if user.is_superuser or user.is_staff:
-        # Superusers and staff always allowed
-        return True
-    if user.has_perm("attachments.add_attachment"):
-        # Explicit add permission overrides disallow
-        return True
-    if user.has_perm("attachments.disallow_add_attachment"):
-        # Disallow generally applied via group, so per-user allow can
-        # override
-        return False
-    return True
 
 
 def full_attachment_url(attachment_id, filename):
     path = reverse(
         "attachments.raw_file",
         kwargs={"attachment_id": attachment_id, "filename": filename},
+    )
+    return f"{settings.PROTOCOL}{settings.ATTACHMENT_HOST}{path}"
+
+
+def full_mindtouch_attachment_url(file_id, filename):
+    path = reverse(
+        "attachments.mindtouch_file_redirect",
+        kwargs={"file_id": file_id, "filename": filename},
     )
     return f"{settings.PROTOCOL}{settings.ATTACHMENT_HOST}{path}"
 

@@ -17,16 +17,9 @@ Contents:
    tests
    tests-functional
 
-   feature-toggles
    celery
    elasticsearch
-   localization
-   ckeditor
-   data
    documentation
 
    docker
    deploy
-
-   rendering
-   assets
