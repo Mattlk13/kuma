@@ -43,8 +43,8 @@
         "pretty-staged": "pretty-quick --staged"
     },
     "dependencies": {
-        "@sentry/node": "^5.6.2",
-        "express": "^4.16.4",
+        "@sentry/node": "^5.30.0",
+        "express": "^4.19.2",
         "jsesc": "2.5.2",
         "morgan": "^1.9.1",
         "newrelic": "^5.9.0",
@@ -75,8 +75,8 @@
         "husky": "0.14.3",
         "jest": "^24.1.0",
         "jest-junit": "^8.0.0",
-        "node-sass": "^4.13.0",
-        "node-sass-chokidar": "^1.4.0",
+        "node-sass": "^9.0.0",
+        "node-sass-chokidar": "^2.0.0",
         "npm-run-all": "4.1.5",
         "prettier": "1.18.2",
         "pretty-quick": "2.0.0",
@@ -87,9 +87,9 @@
         "supertest": "^4.0.2",
         "svgo": "1.2.2",
         "uglify-js": "2.8.29",
-        "webpack": "^4.29.3",
-        "webpack-bundle-analyzer": "3.3.2",
-        "webpack-cli": "^3.2.3",
+        "webpack": "^5.94.0",
+        "webpack-bundle-analyzer": "4.10.2",
+        "webpack-cli": "^5.1.4",
         "webpack-merge": "4.2.1"
     }
 }
